@@ -9,7 +9,6 @@ lxml>=5.0
 sentence-transformers>=3.0
 chromadb>=0.5
 rank-bm25>=0.2.2
-einops>=0.7            # required by nomic-embed-text (long-context embedder experiment)
 # LLM
 ollama>=0.3
 # Evaluation / report
