@@ -6,3 +6,5 @@ __pycache__/
 .pytest_cache/
 data/
 results/smoke/
+results/runs/dev/
+results/*.log
