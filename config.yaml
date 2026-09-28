@@ -1,0 +1,74 @@
+# =====================================================================
+# D2 - RAG agent over SEC filings (10-K / 10-Q)
+# All paths are relative to the project root.
+# =====================================================================
+
+sec:
+  # SEC requires a descriptive User-Agent: "Name email"
+  # https://www.sec.gov/os/accessing-edgar-data
+  user_agent: "David Henriques davidhenriquesdesousa.dev@gmail.com"
+  max_requests_per_second: 8      # SEC limit is 10/s; we stay below it
+  max_retries: 5
+  backoff_base_seconds: 2.0       # exponential backoff: base * 2**attempt
+
+companies:
+  tickers: [AAPL, MSFT, NVDA, TSLA, JPM, KO]
+
+filings:
+  forms: ["10-K", "10-Q"]
+  min_filing_date: "2025-01-01"
+  max_10k_per_company: 1          # most recent annual report
+  max_10q_per_company: 4          # last 4 quarterly reports
+
+paths:
+  raw: data/raw
+  processed: data/processed
+  xbrl: data/raw/xbrl
+  index: data/index
+  manifest: data/manifest.json
+  questions: evaluation/questions.jsonl
+  results: results
+
+indexing:
+  # Chunk sizes are measured in tokens of the embedding model's tokenizer.
+  chunk_size: 512
+  chunk_overlap: 64
+  min_chunk_tokens: 40            # drop tiny fragments (e.g. page footers)
+
+models:
+  # Generator: training cutoff (Dec 2023) predates all filings (>= 2025),
+  # so without RAG it cannot know the answers from memory.
+  generator: "llama3.1:8b"
+  # Judge: different family from the generator to reduce self-preference bias.
+  judge: "qwen2.5:7b"
+  ollama_host: "http://localhost:11434"
+  temperature: 0.0
+  num_ctx: 8192
+  embedding: "BAAI/bge-base-en-v1.5"
+  # Used for the chunk-size experiment with chunks > 512 tokens
+  embedding_long: "nomic-ai/nomic-embed-text-v1.5"
+  reranker: "BAAI/bge-reranker-base"
+  device: "auto"                  # auto | mps | cuda | cpu
+
+retrieval:
+  top_k: 5                        # chunks passed to the LLM
+  candidates_k: 30                # candidates per retriever before fusion / rerank
+  rrf_k: 60                       # Reciprocal Rank Fusion constant
+  ticker_filter: true             # filter by ticker detected in the question
+
+agent:
+  default_variant: rag_hybrid_rerank   # no_rag | rag_dense | rag_hybrid | rag_hybrid_rerank
+  guardrail_use_llm: false             # true = LLM classifier as second line after rules
+
+evaluation:
+  seed: 42
+  numeric_tolerance: 0.01         # 1% relative error
+  retrieval_ks: [1, 3, 5, 10]
+  bootstrap_samples: 2000
+  validation_sample_size: 30
+  # Additional experiment: (chunk_size, chunk_overlap, embedding_key)
+  chunk_experiments:
+    - {chunk_size: 256, chunk_overlap: 32, embedding: embedding}
+    - {chunk_size: 512, chunk_overlap: 64, embedding: embedding}
+    - {chunk_size: 1024, chunk_overlap: 128, embedding: embedding_long}
+  k_experiment: [3, 5, 10]
