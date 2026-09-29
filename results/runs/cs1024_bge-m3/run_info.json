@@ -1,0 +1,10 @@
+{
+  "index": "cs1024_ov128_embedding_long",
+  "k": 5,
+  "variants": [
+    "rag_hybrid_rerank"
+  ],
+  "n_questions": 40,
+  "generator": "llama3.1:8b",
+  "judge": "qwen2.5:7b"
+}

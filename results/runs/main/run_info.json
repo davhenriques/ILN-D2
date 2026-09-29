@@ -1,0 +1,13 @@
+{
+  "index": "cs512_ov64_embedding",
+  "k": 5,
+  "variants": [
+    "no_rag",
+    "rag_dense",
+    "rag_hybrid",
+    "rag_hybrid_rerank"
+  ],
+  "n_questions": 115,
+  "generator": "llama3.1:8b",
+  "judge": "qwen2.5:7b"
+}

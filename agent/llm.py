@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import time
 
+import httpx
 import ollama
 
 
@@ -20,7 +21,13 @@ class OllamaLLM:
 
     def chat(self, messages: list[dict], json_format: bool = False) -> tuple[str, float]:
         """Return (text, latency_seconds)."""
-        t0 = time.perf_counter()
-        r = self.client.chat(model=self.model, messages=messages, options=self.options,
-                             format="json" if json_format else None)
-        return r["message"]["content"].strip(), time.perf_counter() - t0
+        for attempt in range(4):   # survive a brief Ollama restart / dropped connection
+            try:
+                t0 = time.perf_counter()
+                r = self.client.chat(model=self.model, messages=messages, options=self.options,
+                                     format="json" if json_format else None)
+                return r["message"]["content"].strip(), time.perf_counter() - t0
+            except (ConnectionError, httpx.HTTPError):
+                if attempt == 3:
+                    raise
+                time.sleep(5 * 2 ** attempt)
